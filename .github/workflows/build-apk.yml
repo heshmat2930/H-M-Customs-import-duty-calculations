@@ -29,6 +29,10 @@ jobs:
       - name: Build Debug APK
         run: gradle --no-daemon assembleDebug
 
+      - name: Check APK output
+        run: |
+          ls -lh app/build/outputs/apk/debug/
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
