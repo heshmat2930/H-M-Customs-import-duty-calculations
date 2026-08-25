@@ -6,6 +6,7 @@
         android:icon="@drawable/ic_launcher"
         android:allowBackup="true"
         android:supportsRtl="true">
+        <activity android:name=".RecordsActivity" android:screenOrientation="portrait" />
         <activity
             android:name=".MainActivity"
             android:screenOrientation="portrait"
