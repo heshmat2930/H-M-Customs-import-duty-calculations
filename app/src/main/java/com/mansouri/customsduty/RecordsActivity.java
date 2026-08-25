@@ -1,0 +1,28 @@
+package com.mansouri.customsduty;
+
+import android.app.*;
+import android.os.Bundle;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.view.*;
+import android.widget.*;
+import org.json.JSONObject;
+import java.util.List;
+
+public class RecordsActivity extends Activity {
+    LinearLayout root;
+    RecordsStore store;
+    final int blue=Color.rgb(13,71,161), dark=Color.rgb(18,32,56), page=Color.rgb(246,248,252);
+    TextView tv(String s,int sp){TextView t=new TextView(this);t.setText(s);t.setTextSize(sp);t.setTextColor(dark);t.setPadding(18,10,18,10);return t;}
+    EditText input(String value,String hint){EditText e=new EditText(this);e.setText(value);e.setHint(hint);e.setTextSize(16);e.setGravity(Gravity.RIGHT);e.setSingleLine(true);e.setPadding(14,3,14,3);return e;}
+    @Override public void onCreate(Bundle b){super.onCreate(b);store=new RecordsStore(this);build();}
+    void build(){ScrollView sv=new ScrollView(this);root=new LinearLayout(this);root.setOrientation(LinearLayout.VERTICAL);root.setPadding(12,16,12,28);root.setBackgroundColor(page);sv.addView(root);setContentView(sv);
+        LinearLayout head=new LinearLayout(this);head.setGravity(Gravity.CENTER_VERTICAL);TextView back=tv("‹",34);back.setTextColor(Color.WHITE);back.setGravity(Gravity.CENTER);back.setOnClickListener(v->finish());TextView title=tv("📁  سوابق محاسبات و کالا",20);title.setTextColor(Color.WHITE);title.setTypeface(Typeface.DEFAULT,Typeface.BOLD);title.setGravity(Gravity.CENTER);head.setBackgroundColor(blue);head.addView(back,new LinearLayout.LayoutParams(55,70));head.addView(title,new LinearLayout.LayoutParams(0,70,1));root.addView(head);
+        EditText search=input("","جستجو: نام کالا، تعرفه، برند یا کوتاژ");root.addView(search,new LinearLayout.LayoutParams(-1,58));
+        LinearLayout list=new LinearLayout(this);list.setOrientation(LinearLayout.VERTICAL);root.addView(list);refresh(list,search);
+        search.addTextChangedListener(new android.text.TextWatcher(){public void beforeTextChanged(CharSequence s,int st,int c,int a){}public void onTextChanged(CharSequence s,int st,int b,int c){refresh(list,search);}public void afterTextChanged(android.text.Editable e){}});
+    }
+    void refresh(LinearLayout list,EditText search){list.removeAllViews();String q=search.getText().toString().trim().toLowerCase();List<JSONObject> items=store.all();if(items.isEmpty()){TextView e=tv("هنوز سابقه‌ای ثبت نشده است.\nپس از انجام محاسبه، گزینه «افزودن به سوابق» را انتخاب کنید.",16);e.setPadding(20,30,20,30);list.addView(e);return;}for(JSONObject o:items){String all=o.toString().toLowerCase();if(!q.isEmpty()&&!all.contains(q))continue;card(list,o);}}
+    void card(LinearLayout list,JSONObject o){LinearLayout card=new LinearLayout(this);card.setOrientation(LinearLayout.VERTICAL);card.setPadding(12,12,12,8);card.setBackgroundColor(Color.WHITE);String name=o.optString("name","");String tariff=o.optString("tariff","");String brand=o.optString("brand","");String country=o.optString("country","");String value=o.optString("customsValue","");String currency=o.optString("currency","");String quota=o.optString("quota","");TextView t=tv((name.isEmpty()?"کالای بدون نام":name),18);t.setTypeface(Typeface.DEFAULT,Typeface.BOLD);card.addView(t);card.addView(tv("شماره تعرفه: "+tariff+"\nبرند: "+(brand.isEmpty()?"ثبت نشده":brand)+"\nکشور سازنده: "+(country.isEmpty()?"ثبت نشده":country)+"\nارزش گمرکی: "+(value.isEmpty()?"ثبت نشده":value)+(currency.isEmpty()?"":" "+currency)+"\nکوتاژ: "+(quota.isEmpty()?"ثبت نشده":quota),15));LinearLayout actions=new LinearLayout(this);Button edit=new Button(this);edit.setText("✏️ ویرایش");Button use=new Button(this);use.setText("🧮 استفاده در محاسبه");Button del=new Button(this);del.setText("🗑 حذف");actions.addView(edit,new LinearLayout.LayoutParams(0,55,1));actions.addView(use,new LinearLayout.LayoutParams(0,55,1));actions.addView(del,new LinearLayout.LayoutParams(0,55,1));card.addView(actions);edit.setOnClickListener(v->edit(o));use.setOnClickListener(v->{getIntent().putExtra("record",o.toString());setResult(RESULT_OK,getIntent());finish();});del.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("حذف سابقه").setMessage("این سابقه حذف شود؟").setNegativeButton("خیر",null).setPositiveButton("حذف",(d,w)->{store.delete(o.optLong("id"));build();}).show());LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.setMargins(0,10,0,0);list.addView(card,p);}
+    void edit(JSONObject original){LinearLayout box=new LinearLayout(this);box.setOrientation(LinearLayout.VERTICAL);ScrollView sv=new ScrollView(this);LinearLayout form=new LinearLayout(this);form.setOrientation(LinearLayout.VERTICAL);sv.addView(form);String[] keys={"name","tariff","identifier","description","customsValue","currency","country","brand","technical","unit","basis","licenses","quota","quantity","unitValue","notes"};String[] labels={"نام کالا","شماره تعرفه","شناسه","شرح","ارزش گمرکی","ارز","کشور سازنده","برند","مشخصات فنی","واحد کالا","ماخذ","مجوزهای ترخیص","شماره کوتاژ","مقدار","ارزش واحد","توضیحات"};EditText[] fields=new EditText[keys.length];for(int i=0;i<keys.length;i++){form.addView(tv(labels[i],14));fields[i]=input(original.optString(keys[i],""),"");form.addView(fields[i],new LinearLayout.LayoutParams(-1,55));}box.addView(sv);new AlertDialog.Builder(this).setTitle("ویرایش سابقه").setView(box).setNegativeButton("انصراف",null).setPositiveButton("💾 ذخیره تغییرات",(d,w)->{try{for(int i=0;i<keys.length;i++)original.put(keys[i],fields[i].getText().toString().trim());store.update(original);build();}catch(Exception ignored){}}).show();}
+}
