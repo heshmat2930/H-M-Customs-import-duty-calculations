@@ -17,7 +17,7 @@ public class MainActivity extends Activity {
     EditText name, tariff, buy, duty, otherDuty, transportFromValuePercent, insuranceFromValue, transportCost, insuranceCost;
     TextView rate, total;
     Switch valueCostSwitch;
-    LinearLayout transportCostRow, insuranceCostRow;
+    LinearLayout transportCostRow, insuranceCostRow, transportFromValueRow, insuranceFromValueRow;
     final String[] currencies={"دلار آمریکا","یورو","درهم امارات","یوان چین","ین ژاپن","منات آذربایجان","ریال عمان","لیر ترکیه","روبل روسیه","دینار عراق","روپیه پاکستان","روپیه هند","فرانک سوییس","دینار کویت"};
     final String[] terms={"EXW","FCA","FAS","FOB","CPT","CFR","DDU","DDP","DAP","DPU","CIP","CIF"};
     final Map<String,Double> customsRates=new LinkedHashMap<>();
@@ -40,13 +40,14 @@ public class MainActivity extends Activity {
         transportCostRow=row("هزینه حمل و نقل",transportCost); insuranceCostRow=row("هزینه بیمه",insuranceCost);
         form.addView(transportCostRow); form.addView(insuranceCostRow);
         LinearLayout header=new LinearLayout(this);header.setGravity(Gravity.CENTER_VERTICAL);TextView label=tv("هزینه‌های محاسبه‌شده از ارزش کالا",16);label.setTypeface(Typeface.DEFAULT,Typeface.BOLD);valueCostSwitch=new Switch(this);valueCostSwitch.setText("خاموش");valueCostSwitch.setChecked(false);valueCostSwitch.setOnCheckedChangeListener((buttonView,isChecked)->setValueCostFields(isChecked));header.addView(label,new LinearLayout.LayoutParams(0,62,1));header.addView(valueCostSwitch,new LinearLayout.LayoutParams(-2,62));form.addView(header);
-        form.addView(row("هزینه حمل از ارزش کالا",transportFromValuePercent));form.addView(row("هزینه بیمه از ارزش کالا",insuranceFromValue));
+        transportFromValueRow=row("هزینه حمل از ارزش کالا",transportFromValuePercent); insuranceFromValueRow=row("هزینه بیمه از ارزش کالا",insuranceFromValue);
+        form.addView(transportFromValueRow); form.addView(insuranceFromValueRow);
         buy.setOnFocusChangeListener((v,hasFocus)->{if(!hasFocus)updateValueInsurance();});
-        updateTermCostFields();
+        updateTermCostFields(); setValueCostFields(false);
     }
     boolean termHasDirectCosts(){if(term==null||term.getSelectedItem()==null)return false;String t=term.getSelectedItem().toString();return t.equals("EXW")||t.equals("FCA")||t.equals("FAS")||t.equals("FOB");}
     void updateTermCostFields(){boolean enabled=termHasDirectCosts();transportCostRow.setVisibility(enabled?View.VISIBLE:View.GONE);insuranceCostRow.setVisibility(enabled?View.VISIBLE:View.GONE);if(enabled){if(transportCost.getText().toString().trim().isEmpty())transportCost.setText("1");if(insuranceCost.getText().toString().trim().isEmpty())insuranceCost.setText("1");}else{transportCost.setText("0");insuranceCost.setText("0");}}
-    void setValueCostFields(boolean enabled){valueCostSwitch.setText(enabled?"روشن":"خاموش");transportFromValuePercent.setEnabled(false);insuranceFromValue.setEnabled(false);transportFromValuePercent.setBackground(box(enabled?Color.WHITE:inactive,18));insuranceFromValue.setBackground(box(inactive,18));updateValueInsurance();}
+    void setValueCostFields(boolean enabled){valueCostSwitch.setText(enabled?"روشن":"خاموش");transportFromValueRow.setVisibility(enabled?View.VISIBLE:View.GONE);insuranceFromValueRow.setVisibility(enabled?View.VISIBLE:View.GONE);transportFromValuePercent.setEnabled(false);insuranceFromValue.setEnabled(false);transportFromValuePercent.setBackground(box(enabled?Color.WHITE:inactive,18));insuranceFromValue.setBackground(box(inactive,18));updateValueInsurance();}
     void updateValueInsurance(){if(transportFromValuePercent==null||insuranceFromValue==null)return;if(valueCostSwitch!=null&&!valueCostSwitch.isChecked()){transportFromValuePercent.setText("0");insuranceFromValue.setText("0");return;}double r=customsRates.get(currencies[currency.getSelectedItemPosition()]);double purchase=num(buy)*r;double freightFromValue=purchase*10.0/100.0;double insuranceValue=(purchase+freightFromValue)*5.0/1000.0;transportFromValuePercent.setText(fmt(freightFromValue));insuranceFromValue.setText(fmt(insuranceValue));}
     void calcButton(){Button b=new Button(this);b.setText("محاسبه حقوق ورودی  ▶");b.setTextSize(18);b.setTextColor(Color.WHITE);b.setAllCaps(false);b.setBackground(box(blue,20));b.setOnClickListener(v->calculate());LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,65);p.setMargins(6,14,6,8);form.addView(b,p);}
     void results(){root.addView(title("نتیجه محاسبه"));resultBox=new LinearLayout(this);resultBox.setOrientation(LinearLayout.VERTICAL);resultBox.setPadding(16,16,16,16);resultBox.setBackground(box(Color.rgb(232,248,241),22));root.addView(resultBox);total=tv("مجموع حقوق ورودی: 0 ریال",20);total.setTextColor(green);total.setTypeface(Typeface.DEFAULT,Typeface.BOLD);resultBox.addView(total);}
